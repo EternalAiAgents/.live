@@ -1,0 +1,632 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+
+  <title data-app-full-name></title>
+
+
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/dashboard-green.css" />
+  <link rel="stylesheet" href="css/hero-enhanced.css" />
+  <link rel="stylesheet" href="css/terminal.css" />
+  <link rel="stylesheet" href="css/sections.css" />
+  <link rel="stylesheet" href="css/markets.css" />
+  <link rel="stylesheet" href="css/analytics.css" />
+  <link rel="stylesheet" href="css/preloader.css" />
+<!--  <link rel="stylesheet" href="css/combined.css">-->
+
+
+  <script src="js/terminal.js"></script>
+  <script src="js/preloader.js"></script>
+  <script src="js/markets.js"></script>
+
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;600&display=swap"
+    rel="stylesheet"
+  />
+
+
+  <script src="js/config.js"></script>
+  <script src="js/main.js" defer></script>
+
+
+  <script src="js/initWalletAnalyzer.js" type="module"></script>
+  <style>
+    /* Blur the background when preloader is active */
+    body.preloader-active > :not(.preloader) {
+      filter: blur(5px);
+      transition: filter 0.3s ease;
+    }
+
+    /* Preloader styles */
+    .preloader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7); /* Semi-transparent background */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      backdrop-filter: blur(5px); /* Blurs the background content */
+      transition: opacity 0.5s ease;
+    }
+
+    .preloader.fade-out {
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.5s ease, visibility 0.5s;
+    }
+
+    /* Optional: Style adjustments for smooth transitions */
+    .main-content {
+      transition: filter 0.3s ease;
+    }
+  </style>
+  <script type="module">
+    import WalletTracker from './js/walletTracker.js';
+    // Assuming WalletAnalyzer is needed elsewhere
+    // import WalletAnalyzer from './js/walletAnalyzer.js';
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const walletTracker = new WalletTracker();
+      const marketsGrid = document.querySelector('.markets-grid');
+
+      // Show loading state
+      marketsGrid.innerHTML = '<div class="loading">Loading market data...</div>';
+
+      try {
+        const topPairs = await walletTracker.findProfitableTraders();
+        if (topPairs.length === 0) {
+          marketsGrid.innerHTML = '<div class="error">No market data available.</div>';
+          return;
+        }
+
+        const marketsHTML = topPairs.map((pair, i) => {
+          const priceChangeClass = pair.priceChange24h >= 0 ? 'positive' : 'negative';
+          const formattedPrice = pair.priceUsd.toFixed(6);
+          const formattedChange = `${pair.priceChange24h >= 0 ? '+' : ''}${pair.priceChange24h.toFixed(2)}%`;
+          const formattedVolume = `$${(pair.volume24h / 1e6).toFixed(2)}M`;
+          const formattedLiquidity = `$${(pair.liquidity / 1e6).toFixed(2)}M`;
+          const formattedMarketCap = `$${(pair.marketCap / 1e6).toFixed(2)}M`;
+          const createdAt = pair.createdAt.toLocaleDateString();
+
+          return `
+            <div class="market-card">
+              <div class="market-header">
+                <div class="market-title">
+                  <h3>${pair.tokenSymbol}</h3>
+                  <span class="market-name">${pair.tokenName}</span>
+                </div>
+                <div class="market-price">
+                  <div class="current-price">$${formattedPrice}</div>
+                  <div class="price-change ${priceChangeClass}">
+                    ${formattedChange}
+                  </div>
+                </div>
+              </div>
+              <div class="market-stats">
+                <div class="stat">
+                  <div class="stat-label">24h Volume</div>
+                  <div class="stat-value">${formattedVolume}</div>
+                </div>
+                <div class="stat">
+                  <div class="stat-label">Liquidity</div>
+                  <div class="stat-value">${formattedLiquidity}</div>
+                </div>
+                <div class="stat">
+                  <div class="stat-label">Market Cap</div>
+                  <div class="stat-value">${formattedMarketCap}</div>
+                </div>
+                <div class="stat">
+                  <div class="stat-label">Transactions</div>
+                  <div class="stat-value">${pair.txns24h}</div>
+                </div>
+                <div class="stat">
+                  <div class="stat-label">Created At</div>
+                  <div class="stat-value">${createdAt}</div>
+                </div>
+              </div>
+              <div class="market-links">
+                <a href="https://dexscreener.com/solana/${pair.pairAddress}" target="_blank" class="dex-link">
+                  View on DexScreener
+                  <span class="dex-icon">🔗</span>
+                </a>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        marketsGrid.innerHTML = marketsHTML;
+
+      } catch (error) {
+        console.error('Error loading markets:', error);
+        marketsGrid.innerHTML = '<div class="error">Error loading market data.</div>';
+      }
+    });
+  </script>
+</head>
+<body>
+
+<div class="preloader">
+  <div class="preloader-content">
+    <div class="hud-text">
+      <div class="glitch-text" data-app-full-name></div>
+      <div class="loading-status">INITIALIZING <span data-app-name></span> CORE</div>
+      <div class="loading-progress">
+        <div class="progress-bar"></div>
+      </div>
+    </div>
+    <button class="enter-button">
+      <span class="button-text">ENTER SYSTEM</span>
+      <div class="button-glitch"></div>
+    </button>
+  </div>
+</div>
+
+
+<div class="PROJECT-particles"></div>
+
+
+<nav class="nav-container">
+  <div class="nav-content">
+    <div class="hero-content">
+      <h1 data-app-full-name></h1>
+    </div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#analytics">Analytics</a>
+      <a href="#PROJECT"><span data-app-name></span> Core</a>
+      <a href="#roadmap">Roadmap</a>
+
+      <a
+        target="_blank"
+        rel="noopener noreferrer"
+        class="connect-PROJECT"
+        href="https://dexscreener.com/"
+      >
+        <div class="button-glitch"></div>
+        <img
+          src="img/dexscreaner.png"
+          alt="Dex"
+          width="24"
+          height="24"
+          style="margin-left: 8px;"
+        >
+        <svg
+          class="external-link"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+        >
+          <path
+            d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"
+            stroke-width="2"
+          />
+          <path d="M15 3h6v6" stroke-width="2" />
+          <path d="M10 14L21 3" stroke-width="2" />
+        </svg>
+      </a>
+
+      <a
+        data-open-pump-fun-header
+        target="_blank"
+        rel="noopener noreferrer"
+        class="connect-PROJECT"
+        style="display: none;"
+      >
+<!--        <span class="button-text">Pump.fun</span>-->
+        <div class="button-glitch"></div>
+        <img
+          src="img/pump.png.png"
+          alt="Twitter"
+          width="24"
+          height="24"
+          style="margin-left: 8px;"
+        >
+        <svg
+          class="external-link"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+        >
+          <path
+            d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"
+            stroke-width="2"
+          />
+          <path d="M15 3h6v6" stroke-width="2" />
+          <path d="M10 14L21 3" stroke-width="2" />
+        </svg>
+      </a>
+
+      <a
+        data-project-twitter-link
+        target="_blank"
+        rel="noopener noreferrer"
+        class="connect-PROJECT"
+        href="https://x.com/EternalAiAgent"
+      >
+<!--        <span class="button-text">Follow</span>-->
+        <div class="button-glitch"></div>
+        <img
+          src="img/twitter-logo-2.svg"
+          alt="Twitter"
+          width="24"
+          height="24"
+          style="margin-left: 8px;"
+        >
+        <svg
+          class="external-link"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+        >
+          <path
+            d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"
+            stroke-width="2"
+          />
+          <path d="M15 3h6v6" stroke-width="2" />
+          <path d="M10 14L21 3" stroke-width="2" />
+        </svg>
+      </a>
+
+      <a
+        data-project-github-link
+        target="_blank"
+        rel="noopener noreferrer"
+        class="connect-PROJECT"
+      >
+<!--        <span class="button-text">git</span>-->
+        <div class="button-glitch"></div>
+        <img
+          src="img/pump.png.png"
+          alt="GitHub"
+          width="24"
+          height="24"
+          style="margin-left: 8px;"
+        >
+        <svg
+          class="external-link"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+        >
+          <path
+            d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"
+            stroke-width="2"
+          />
+          <path d="M15 3h6v6" stroke-width="2" />
+          <path d="M10 14L21 3" stroke-width="2" />
+        </svg>
+      </a>
+
+      <a
+        data-open-telegram-header
+        target="_blank"
+        rel="noopener noreferrer"
+        class="connect-PROJECT"
+      >
+<!--        <span class="button-text">TG</span>-->
+        <div class="button-glitch"></div>
+        <img
+          src="img/tg.jpg"
+          alt="Telegram"
+          width="24"
+          height="24"
+          style="margin-left: 8px;"
+        >
+        <svg
+          class="external-link"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+        >
+          <path
+            d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"
+            stroke-width="2"
+          />
+          <path d="M15 3h6v6" stroke-width="2" />
+          <path d="M10 14L21 3" stroke-width="2" />
+        </svg>
+      </a>
+    </div>
+  </div>
+</nav>
+
+
+<section class="hero-section">
+  <div class="hero-content">
+    <h1 data-app-full-name></h1>
+    <p class="hero-subtitle">
+      <span data-app-name></span> Chain Intelligence
+    </p>
+    <div class="hero-description">
+      Harness the power of Eternal <span data-app-name></span> AI-agent-based networks for advanced blockchain analysis
+      and pattern recognition
+    </div>
+    <div class="hero-stats">
+<!--      <div class="stat-item">-->
+<!--        <span class="stat-value">100K+</span>-->
+<!--        <span class="stat-label">Patterns Analyzed</span>-->
+<!--      </div>-->
+      <div class="stat-item">
+        <span class="stat-value">Over 1B+ solana transactions</span>
+        <span class="stat-label">Already analyzed for training</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value">50ms</span>
+        <span class="stat-label"><span data-app-name></span> Analyzing latency</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value">99.9%</span>
+        <span class="stat-label">Accuracy</span>
+      </div>
+
+    </div>
+    <div class="hero-actions">
+      <a href="#analytics" class="primary-button">
+        <span class="button-text">Wallet Analyzer</span>
+        <div class="button-glitch"></div>
+      </a>
+      <a href="#market-tracking" class="secondary-button">
+        <span class="button-text">Coin Analyzer</span>
+        <div class="button-glitch"></div>
+      </a>
+    </div>
+  </div>
+
+  <div class="hero-terminal">
+    <div class="terminal-header">
+      <div class="terminal-button"></div>
+      <div class="terminal-button"></div>
+      <div class="terminal-button"></div>
+      <span class="terminal-title">
+          <span data-app-full-name></span> - <span data-app-name></span> Core
+        </span>
+    </div>
+    <div class="terminal-content">
+
+    </div>
+  </div>
+</section>
+
+
+<section
+  id="contract-address-section"
+  class="contract-address-section"
+  style="display: none;"
+>
+  <div class="section-header">
+    <h2>Contract Address</h2>
+    <p data-contract-address></p>
+    <br>
+    <button
+      class="analyze-button"
+      data-open-pump-fun
+      style="width: 200px; margin: 0 auto; height: 50px;"
+    >
+      <span class="button-text">Pump Fun</span>
+    </button>
+  </div>
+</section>
+
+
+<section id="analytics" class="analytics-section">
+  <div class="section-header">
+    <h2><span data-app-name></span> Analytics</h2>
+    <p>Advanced wallet analysis powered by off-chain Eternal Ai processing</p>
+  </div>
+
+  <div class="analytics-container">
+    <div class="wallet-analyzer">
+      <div class="input-container">
+        <input
+          type="text"
+          id="walletInput"
+          placeholder="Enter Solana wallet address or Solscan URL"
+          class="wallet-input"
+        />
+        <button id="analyzeButton" class="analyze-button">Analyze Wallet</button>
+      </div>
+      <div id="walletAnalytics" class="wallet-results">
+
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<section id="market-tracking" class="market-tracking-section">
+  <div class="section-header">
+    <h2><span data-app-name></span> Market Tracking</h2>
+    <p>Real-time analysis of top digital assets</p>
+    <p>Coming Soon!</p>
+  </div>
+  <div class="markets-container">
+    <div class="markets-grid"></div>
+  </div>
+</section>
+
+
+<section id="features" class="features-section">
+  <div class="section-header">
+    <h2><span data-app-name></span> Features</h2>
+    <p>Advanced <span data-app-name></span> systems for comprehensive chain analysis</p>
+  </div>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path
+            d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          ></path>
+        </svg>
+      </div>
+      <h3><span data-app-name></span> Processing</h3>
+      <p>Advanced pattern recognition powered by AI compute</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path
+            d="M22 12h-4l-3 9L9 3l-3 9H2"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          ></path>
+        </svg>
+      </div>
+      <h3>Market Analysis</h3>
+      <p>Real-time market intelligence with predictive signals</p>
+    
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <circle cx="12" cy="12" r="10" stroke-width="2"></circle>
+          <path d="M12 6v6l4 2" stroke-width="2" stroke-linecap="round"></path>
+        </svg>
+      </div>
+      <h3>Lightning Speed</h3>
+      <p>Lightning-fast analysis across multiple chains</p>
+    </div>
+  </div>
+</section>
+
+
+<section id="PROJECT" class="PROJECT-section">
+  <div class="section-header">
+    <h2><span data-app-name></span> Core</h2>
+    <p>Advanced blockchain intelligence powered by Eternal computing</p>
+  </div>
+  <div class="PROJECT-grid">
+    <div class="PROJECT-card">
+      <h3>Pattern Recognition</h3>
+      <ul class="PROJECT-features">
+        <li>Advanced market pattern detection</li>
+        <li>Real-time anomaly identification</li>
+        <li>Predictive trend analysis</li>
+      </ul>
+    </div>
+    <div class="PROJECT-card">
+      <h3>Eternal Ai Analysis</h3>
+      <ul class="PROJECT-features">
+        <li>Multi-chain data processing</li>
+        <li><span data-app-name></span> network optimization</li>
+        <li>Advanced risk metrics</li>
+      </ul>
+    </div>
+    <div class="PROJECT-card">
+      <h3>Market Intelligence</h3>
+      <ul class="PROJECT-features">
+        <li>Whale wallet tracking</li>
+        <li>Smart money analysis</li>
+        <li>Volume pattern detection</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+
+<section id="roadmap" class="roadmap-section">
+  <div class="section-header">
+    <h2><span data-app-name></span> Evolution</h2>
+    <p>Our path to advanced artificial intelligence</p>
+  </div>
+  <div class="roadmap-container">
+    <div class="roadmap-item">
+      <div class="roadmap-date">Q1 2025</div>
+      <div class="roadmap-content">
+        <h3><span data-app-name></span> Core Launch</h3>
+        <ul>
+          <li>Pattern recognition system</li>
+          <li>Basic chain analysis</li>
+          <li>Market tracking</li>
+        </ul>
+      </div>
+    </div>
+    <div class="roadmap-item">
+      <div class="roadmap-date">Q2 2025</div>
+      <div class="roadmap-content">
+        <h3>AI Integration</h3>
+        <ul>
+          <li>Advanced <span data-app-name></span> processing</li>
+          <li>Multi-chain analysis</li>
+          <li>Enhanced predictions</li>
+        </ul>
+      </div>
+    </div>
+    <div class="roadmap-item">
+      <div class="roadmap-date">Q3 2025</div>
+      <div class="roadmap-content">
+        <h3>Elite Features</h3>
+        <ul>
+          <li>Custom <span data-app-name></span> signals</li>
+          <li>Advanced portfolio tracking</li>
+          <li>Premium indicators</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<footer class="footer">
+  <div class="footer-content">
+    <div class="hero-content">
+      <h1 data-app-full-name></h1>
+    </div>
+    <div class="footer-links">
+      <div class="footer-column">
+        <h4>Platform</h4>
+        <a href="#features">Features</a>
+        <a href="#analytics">Analytics</a>
+        <a href="#PROJECT"><span data-app-name></span> Core</a>
+      </div>
+<!--      <div class="footer-column">-->
+<!--        <h4>Resources</h4>-->
+<!--        <a href="/docs">Documentation</a>-->
+<!--        <a href="/api">API</a>-->
+<!--        <a href="/blog">Blog</a>-->
+<!--      </div>-->
+<!--      <div class="footer-column">-->
+<!--        <h4>Company</h4>-->
+<!--        <a href="/about">About</a>-->
+<!--        <a href="/careers">Careers</a>-->
+<!--        <a href="/contact">Contact</a>-->
+<!--      </div>-->
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>
+      &copy; 2025 <span data-app-full-name></span>. All rights reserved. Eternal Ai
+    </p>
+  </div>
+</footer>
+</body>
+</html>
